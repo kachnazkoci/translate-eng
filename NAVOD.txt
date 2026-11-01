@@ -1,0 +1,34 @@
+ANGLIČTINA – SLOVÍČKOVÁ HRA
+
+Obsah složky:
+- slovickova_hra.py – samotná aplikace
+- slovicka.xlsx – databáze slovíček
+- NAVOD.txt – tento návod
+
+INSTALACE (jen jednou)
+Otevři PowerShell v této složce a spusť:
+    py -m pip install openpyxl
+
+SPUŠTĚNÍ
+    py slovickova_hra.py
+
+HERNÍ REŽIMY
+1) Přiřazování – aplikace zobrazí pět anglických výrazů a pět českých překladů v náhodném pořadí. Klikni na anglický výraz a pak na český překlad. Za správnou dvojici získáš bod.
+2) Přímý překlad – aplikace vybere až 20 slov. Směr se náhodně střídá mezi angličtinou → češtinou a češtinou → angličtinou. Napiš překlad a potvrď Enterem nebo tlačítkem.
+
+KATEGORIE
+Na hlavní obrazovce vyber všechny kategorie nebo konkrétní kategorii introduction / part 1 / part 2 atd.
+
+JAK PŘIDAT SLOVÍČKA
+1. Zavři aplikaci.
+2. Otevři slovicka.xlsx, list Slovník.
+3. Přidej nový řádek na konec tabulky.
+4. Vyplň nové jedinečné ID, anglický základní tvar, český překlad a kategorii.
+5. Více českých překladů odděluj středníkem ; .
+6. Ulož Excel a spusť aplikaci znovu. Pythonový soubor není nutné upravovat.
+
+Poznámky:
+- Aplikace načítá Excel při každém spuštění.
+- V režimu EN → CZ se uznávají české varianty oddělené středníkem.
+- V režimu CZ → EN se kontroluje přesný anglický základní tvar (nerozlišuje se velikost písmen).
+- U výrazu „ever-extending“ doporučuji ověřit přesný zápis v kontextu knihy.
