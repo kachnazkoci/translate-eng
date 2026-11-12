@@ -7,12 +7,11 @@ let remaining = [];
 const $ = (selector) => document.querySelector(selector);
 
 async function init() {
-    const csv = await (await fetch("vocabulary.csv")).text();
+    const response = await fetch("vocabulary.csv");
+    if (!response.ok) throw new Error("Nepodařilo se načíst vocabulary.csv.");
+    const csv = await response.text();
     const rows = parseCSV(csv);
 
-    // CSV columns:
-    // ID, Kniha, Část, Název části, Blok, Kapitola,
-    // Název kapitoly, Anglický výraz, Český překlad, ...
     all = rows.slice(1)
         .filter(row => row[7] && row[8])
         .map(row => ({
@@ -27,12 +26,7 @@ async function init() {
             cz: row[8]
         }));
 
-    setOptions(
-        $("#book"),
-        unique(all.map(x => x.book)),
-        "Všechny knihy"
-    );
-
+    setOptions($("#book"), unique(all.map(x => x.book)), "Vše");
     updateFilters();
 }
 
@@ -57,21 +51,18 @@ function parseCSV(text) {
             continue;
         }
 
-        if (char === ',' && !quoted) {
+        if (char === "," && !quoted) {
             row.push(cell);
             cell = "";
             continue;
         }
 
-        if ((char === '\n' || char === '\r') && !quoted) {
-            if (char === '\r' && next === '\n') i++;
+        if ((char === "\n" || char === "\r") && !quoted) {
+            if (char === "\r" && next === "\n") i++;
             row.push(cell);
             cell = "";
 
-            if (row.some(value => value !== "")) {
-                result.push(row);
-            }
-
+            if (row.some(value => value !== "")) result.push(row);
             row = [];
             continue;
         }
@@ -91,89 +82,90 @@ function unique(values) {
     return [...new Set(values.filter(Boolean))];
 }
 
-function setOptions(select, values, allLabel = "Vše") {
-    const current = select.value;
-
-    select.innerHTML = `<option value="">${esc(allLabel)}</option>` +
-        values.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join("");
-
-    if (values.includes(current)) {
-        select.value = current;
-    }
+function setOptions(select, options, allLabel = "Vše") {
+    select.innerHTML =
+        `<option value="">${esc(allLabel)}</option>` +
+        options.map(option =>
+            `<option value="${esc(option.value)}">${esc(option.label)}</option>`
+        ).join("");
 }
 
 function updateFilters() {
-    const oldPart = $("#part").value;
-    const oldBlock = $("#block").value;
+    const selectedBook = $("#book").value;
 
-    // Part depends on the selected book.
     let data = all;
-
-    if ($("#book").value) {
-        data = data.filter(x => x.book === $("#book").value);
+    if (selectedBook) {
+        data = data.filter(x => x.book === selectedBook);
     }
 
-    const parts = unique(data.map(x =>
-        x.partName ? `${x.part} – ${x.partName}` : x.part
-    ));
+    // IMPORTANT:
+    // The Part selector contains only Introduction / Part 1 / Part 2...
+    // It must never contain the raw numeric value "1" as a second option.
+    const parts = [];
+    const seenParts = new Set();
 
-    setOptions($("#part"), parts, "Všechny části");
+    for (const item of data) {
+        if (!item.part || seenParts.has(item.part)) continue;
+        seenParts.add(item.part);
 
-    // Keep the previous Part selection if it is still valid.
-    if (parts.includes(oldPart)) {
-        $("#part").value = oldPart;
-    } else {
-        $("#part").value = "";
+        if (item.part === "Introduction") {
+            parts.push({
+                value: "Introduction",
+                label: "Introduction"
+            });
+        } else {
+            parts.push({
+                value: item.part,
+                label: `${item.part} — ${item.partName}`
+            });
+        }
     }
 
-    updateBlocks(oldBlock);
+    setOptions($("#part"), parts, "Vše");
+    updateBlocks();
 }
 
-function updateBlocks(oldBlock = "") {
+function updateBlocks() {
+    const selectedBook = $("#book").value;
+    const selectedPart = $("#part").value;
+
     let data = all;
 
-    if ($("#book").value) {
-        data = data.filter(x => x.book === $("#book").value);
+    if (selectedBook) {
+        data = data.filter(x => x.book === selectedBook);
     }
 
-    if ($("#part").value) {
-        const selectedPart = $("#part").value;
-        data = data.filter(x => {
-            const label = x.partName ? `${x.part} – ${x.partName}` : x.part;
-            return label === selectedPart;
-        });
+    if (selectedPart) {
+        data = data.filter(x => x.part === selectedPart);
     }
 
-    const blocks = unique(data.map(x => getBlockLabel(x)));
+    const blocks = [];
+    const seenBlocks = new Set();
 
-    setOptions($("#block"), blocks, "Všechny kapitoly / bloky");
+    for (const item of data) {
+        let value;
+        let label;
 
-    if (blocks.includes(oldBlock)) {
-        $("#block").value = oldBlock;
-    } else {
-        $("#block").value = "";
+        if (item.part === "Introduction") {
+            value = "Introduction";
+            label = "Introduction";
+        } else if (item.block === "Solutions") {
+            value = "Solutions";
+            label = "Solutions";
+        } else {
+            value = item.chapter;
+            label = item.chapter
+                ? `Chapter ${item.chapter} — ${item.chapterName}`
+                : item.chapterName;
+        }
+
+        if (!value || seenBlocks.has(value)) continue;
+        seenBlocks.add(value);
+        blocks.push({ value, label });
     }
 
+    setOptions($("#block"), blocks, "Vše");
     updateCountAndStart();
-}
-
-function getBlockLabel(item) {
-    // Solutions are a separate selectable block.
-    if (item.block && item.block.toLowerCase() === "solutions") {
-        return "Solutions";
-    }
-
-    if (item.chapterName) {
-        return item.chapter
-            ? `${item.chapter} – ${item.chapterName}`
-            : item.chapterName;
-    }
-
-    if (item.chapter) {
-        return item.chapter;
-    }
-
-    return item.block || "Ostatní";
 }
 
 function filtered() {
@@ -184,15 +176,15 @@ function filtered() {
     }
 
     if ($("#part").value) {
-        const selectedPart = $("#part").value;
-        data = data.filter(x => {
-            const label = x.partName ? `${x.part} – ${x.partName}` : x.part;
-            return label === selectedPart;
-        });
+        data = data.filter(x => x.part === $("#part").value);
     }
 
     if ($("#block").value) {
-        data = data.filter(x => getBlockLabel(x) === $("#block").value);
+        data = data.filter(x => {
+            if (x.part === "Introduction") return $("#block").value === "Introduction";
+            if (x.block === "Solutions") return $("#block").value === "Solutions";
+            return x.chapter === $("#block").value;
+        });
     }
 
     return data;
@@ -205,14 +197,13 @@ function updateCountAndStart() {
 }
 
 function sample(array, count) {
-    return [...array]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, count);
+    return [...array].sort(() => Math.random() - 0.5).slice(0, count);
 }
 
 function start() {
     score = 0;
-    remaining = sample(filtered(), 20);
+    selected = null;
+    remaining = sample(filtered(), Math.min(20, filtered().length));
     render();
 }
 
@@ -288,6 +279,10 @@ function pair(event) {
         return;
     }
 
+    if (selected === button) {
+        return;
+    }
+
     if (selected.dataset.id === button.dataset.id) {
         selected.classList.remove("selected");
         selected.classList.add("correct");
@@ -295,6 +290,7 @@ function pair(event) {
 
         score++;
         remaining = remaining.filter(x => x.id !== button.dataset.id);
+        selected = null;
 
         if (remaining.length % 5 === 0 || remaining.length === 0) {
             setTimeout(render, 300);
@@ -318,26 +314,19 @@ function renderTranslate() {
     }
 
     const item = remaining[0];
-    const englishToCzech = Math.random() < 0.5;
-    const total = Math.min(20, filtered().length);
-    const done = total - remaining.length;
+    const englishFirst = Math.random() < 0.5;
+    const prompt = englishFirst ? item.en : item.cz;
 
     $("#game").innerHTML = `
         <div class="score">
             <b>Skóre: ${score}</b>
-            <span>${Math.min(done + 1, total)}/${total}</span>
+            <span>${Math.min(20 - remaining.length + 1, 20)}/${Math.min(20, filtered().length)}</span>
         </div>
 
-        <div class="prompt">
-            ${esc(englishToCzech ? item.en : item.cz)}
-        </div>
+        <div class="prompt">${esc(prompt)}</div>
 
         <div class="answer">
-            <input
-                id="ans"
-                autofocus
-                placeholder="${englishToCzech ? "Česky" : "English"}"
-            >
+            <input id="ans" autofocus placeholder="${englishFirst ? "Česky" : "English"}">
             <button id="check">Kontrola</button>
         </div>
 
@@ -346,20 +335,22 @@ function renderTranslate() {
 
     const check = () => {
         const value = $("#ans").value.trim().toLowerCase();
-        const target = englishToCzech ? item.cz : item.en;
-        const accepted = target
-            .toLowerCase()
-            .split(";")
-            .map(x => x.trim());
+        if (!value) return;
 
-        if (accepted.includes(value) || value === target.toLowerCase()) {
+        const accepted = englishFirst
+            ? item.cz.toLowerCase().split(";").map(x => x.trim())
+            : [item.en.toLowerCase().trim()];
+
+        if (accepted.includes(value)) {
             score++;
             $("#fb").textContent = "✓ Správně";
         } else {
-            $("#fb").textContent = `✗ ${englishToCzech ? item.cz : item.en}`;
+            $("#fb").textContent = `✗ ${englishFirst ? item.cz : item.en}`;
         }
 
+        $("#check").disabled = true;
         remaining.shift();
+
         setTimeout(renderTranslate, 500);
     };
 
@@ -371,37 +362,24 @@ function renderTranslate() {
 
 document.querySelectorAll(".tab").forEach(button => {
     button.onclick = () => {
-        document.querySelectorAll(".tab")
-            .forEach(tab => tab.classList.remove("active"));
-
+        document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
         button.classList.add("active");
         mode = button.dataset.mode;
         start();
     };
 });
 
-$("#book").onchange = () => {
-    $("#part").value = "";
-    $("#block").value = "";
-    updateFilters();
-};
-
-$("#part").onchange = () => {
-    $("#block").value = "";
-    updateBlocks();
-};
-
+$("#book").onchange = updateFilters;
+$("#part").onchange = updateBlocks;
 $("#block").onchange = updateCountAndStart;
 
 $("#reset").onclick = () => {
     $("#book").value = "";
-    $("#part").value = "";
-    $("#block").value = "";
     updateFilters();
 };
 
 function esc(value) {
-    return String(value ?? "").replace(/[&<>\"]/g, char => ({
+    return String(value ?? "").replace(/[&<>"]/g, char => ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
@@ -409,4 +387,12 @@ function esc(value) {
     }[char]));
 }
 
-init();
+init().catch(error => {
+    $("#count").textContent = "Chyba";
+    $("#game").innerHTML = `
+        <div class="result">
+            <h2>Nepodařilo se načíst slovíčka</h2>
+            <p>${esc(error.message)}</p>
+        </div>
+    `;
+});
