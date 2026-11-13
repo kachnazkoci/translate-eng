@@ -193,17 +193,48 @@ function filtered() {
 function updateCountAndStart() {
     const data = filtered();
     $("#count").textContent = `${data.length} slovíček`;
-    start();
+    start(true);
 }
 
 function sample(array, count) {
     return [...array].sort(() => Math.random() - 0.5).slice(0, count);
 }
 
-function start() {
+let deck = [];
+let sessionKey = "";
+let sessionTotal = 0;
+
+function getSessionKey() {
+    return [
+        $("#book").value,
+        $("#part").value,
+        $("#block").value
+    ].join("|");
+}
+
+function shuffle(array) {
+    const copy = [...array];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+function start(forceNewCycle = false) {
+    const key = getSessionKey();
+    const data = filtered();
+
+    if (key !== sessionKey || forceNewCycle || deck.length === 0) {
+        sessionKey = key;
+        deck = shuffle(data);
+        sessionTotal = data.length;
+    }
+
     score = 0;
     selected = null;
-    remaining = sample(filtered(), Math.min(20, filtered().length));
+    remaining = deck.splice(0, Math.min(5, deck.length));
+
     render();
 }
 
@@ -216,14 +247,36 @@ function render() {
 }
 
 function renderMatch() {
-    const round = remaining.slice(0, 5);
+    const round = remaining;
 
     if (!round.length) {
+        if (deck.length > 0) {
+            remaining = deck.splice(0, Math.min(5, deck.length));
+            selected = null;
+            render();
+            return;
+        }
+
+        // Název aktuálně vybraného bloku
+        const blockValue = $("#block").value;
+        const blockText = $("#block option:checked").textContent;
+
+        let trainingText = "";
+
+        if (blockValue.startsWith("Chapter ")) {
+            const chapterNumber = blockValue.replace("Chapter ", "");
+            trainingText = `${chapterNumber}. kapitoly`;
+        } else if (blockValue.startsWith("Solutions")) {
+            trainingText = `${blockText}`;
+        } else {
+            trainingText = blockText;
+        }
+
         $("#game").innerHTML = `
             <div class="result">
-                <h2>Hotovo 🎉</h2>
-                <p>Skóre: ${score}</p>
-                <button onclick="start()">Hrát znovu</button>
+                <h2>Celé kolo dokončeno 🎉</h2>
+                <p>Bylo potrénováno všech ${sessionTotal} slovíček ${trainingText}.</p>
+                <button onclick="start(true)">Nové kolo</button>
             </div>
         `;
         return;
@@ -231,19 +284,21 @@ function renderMatch() {
 
     selected = null;
 
-    const english = sample(round, round.length);
-    const czech = sample(round, round.length);
-    const total = Math.min(20, filtered().length);
-    const done = total - remaining.length;
+    const english = shuffle(round);
+    const czech = shuffle(round);
+
+    const completed = sessionTotal - deck.length - remaining.length;
+    const progressStart = completed + 1;
+    const progressEnd = completed + round.length;
 
     $("#game").innerHTML = `
         <div class="score">
             <b>Skóre: ${score}</b>
-            <span>${Math.min(done + 1, total)}/${total}</span>
+            <span>${progressStart}–${progressEnd} / ${sessionTotal}</span>
         </div>
 
         <p class="muted">
-            Klikni na anglické slovo a potom na jeho český překlad.
+            Klikni na anglický nebo český výraz a potom na jeho protějšek.
         </p>
 
         <div class="round">
@@ -273,31 +328,52 @@ function renderMatch() {
 function pair(event) {
     const button = event.currentTarget;
 
+    // První klik může být na anglický i český výraz.
     if (!selected) {
         selected = button;
         selected.classList.add("selected");
         return;
     }
 
+    // Kliknutí na stejný výraz podruhé zruší výběr.
     if (selected === button) {
+        selected.classList.remove("selected");
+        selected = null;
         return;
     }
 
-    if (selected.dataset.id === button.dataset.id) {
-        selected.classList.remove("selected");
-        selected.classList.add("correct");
-        button.classList.add("correct");
+    const first = selected;
+    const second = button;
+
+    // Pořadí jazyků není důležité.
+    if (first.dataset.id === second.dataset.id) {
+        // SPRÁVNĚ – zelené označení a dvojice následně zmizí.
+        first.classList.remove("selected");
+        first.classList.add("correct");
+        second.classList.add("correct");
 
         score++;
-        remaining = remaining.filter(x => x.id !== button.dataset.id);
+        remaining = remaining.filter(x => x.id !== second.dataset.id);
         selected = null;
 
-        if (remaining.length % 5 === 0 || remaining.length === 0) {
-            setTimeout(render, 300);
-        }
+        // Necháme uživatele krátce vidět zelenou správnou odpověď,
+        // potom dvojice zmizí.
+        setTimeout(() => {
+            render();
+        }, 450);
+
     } else {
-        selected.classList.remove("selected");
-        selected = null;
+        // ŠPATNĚ – obě kliknuté karty se krátce označí červeně.
+        // Dvojice zůstane na místě, aby bylo jasné, co bylo špatně.
+        first.classList.remove("selected");
+        first.classList.add("wrong");
+        second.classList.add("wrong");
+
+        setTimeout(() => {
+            first.classList.remove("wrong");
+            second.classList.remove("wrong");
+            selected = null;
+        }, 700);
     }
 }
 
