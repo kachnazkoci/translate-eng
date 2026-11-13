@@ -1,1 +1,38 @@
-<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vocabulary Game</title><link rel="stylesheet" href="style.css"></head><body><header><h1>📚 Vocabulary Game</h1><p>English ↔ Czech vocabulary trainer</p></header><main><section class="card"><div class="filters"><label>Kniha<select id="book"></select></label><label>Část<select id="part"></select></label><label>Kapitola / blok<select id="block"></select></label></div><div class="bar"><button id="reset">Vymazat filtry</button><span id="count"></span></div></section><section class="card"><div class="tabs"><button class="tab active" data-mode="match">Párování</button><button class="tab" data-mode="translate">Překlad</button></div><div id="game"></div></section></main><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Vocabulary Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+    <h1>📚 Vocabulary Game</h1>
+    <p>English ↔ Czech vocabulary trainer</p>
+</header>
+<main>
+    <section class="card">
+        <div class="filters">
+            <label>Book<select id="book"></select></label>
+            <label>Part<select id="part"></select></label>
+            <label>Chapter / block<select id="block"></select></label>
+        </div>
+        <div class="bar">
+            <button id="reset">Reset filters</button>
+            <span id="count"></span>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="tabs">
+            <button class="tab active" data-mode="match">Matching</button>
+            <button class="tab" data-mode="translate">Translation</button>
+            <button class="tab" data-mode="pick">Pick the right one</button>
+        </div>
+        <div id="game"></div>
+    </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
