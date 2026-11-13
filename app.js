@@ -149,9 +149,10 @@ function updateBlocks() {
         if (item.part === "Introduction") {
             value = "Introduction";
             label = "Introduction";
-        } else if (item.block === "Solutions") {
-            value = "Solutions";
-            label = "Solutions";
+        } else if (item.block && item.block.toLowerCase().startsWith("solutions")) {
+            // Keep Solutions 1 / Solutions 2 / Solutions 3 as separate blocks.
+            value = item.block;
+            label = item.block;
         } else {
             value = item.chapter;
             label = item.chapter
@@ -182,7 +183,9 @@ function filtered() {
     if ($("#block").value) {
         data = data.filter(x => {
             if (x.part === "Introduction") return $("#block").value === "Introduction";
-            if (x.block === "Solutions") return $("#block").value === "Solutions";
+            if (x.block && x.block.toLowerCase().startsWith("solutions")) {
+                return x.block === $("#block").value;
+            }
             return x.chapter === $("#block").value;
         });
     }
@@ -257,19 +260,14 @@ function renderMatch() {
             return;
         }
 
-        // Název aktuálně vybraného bloku
         const blockValue = $("#block").value;
-        const blockText = $("#block option:checked").textContent;
+        const blockLabel = $("#block option:checked")?.textContent || blockValue;
 
-        let trainingText = "";
-
-        if (blockValue.startsWith("Chapter ")) {
-            const chapterNumber = blockValue.replace("Chapter ", "");
-            trainingText = `${chapterNumber}. kapitoly`;
-        } else if (blockValue.startsWith("Solutions")) {
-            trainingText = `${blockText}`;
+        let trainingText;
+        if (/^\\d+$/.test(blockValue)) {
+            trainingText = `${blockValue}. kapitoly`;
         } else {
-            trainingText = blockText;
+            trainingText = blockLabel;
         }
 
         $("#game").innerHTML = `
@@ -434,6 +432,16 @@ function renderTranslate() {
     $("#ans").onkeydown = event => {
         if (event.key === "Enter") check();
     };
+
+    // The input is recreated for every new word, so autofocus alone
+    // is not reliable after dynamic DOM updates. Explicitly focus it.
+    requestAnimationFrame(() => {
+        const input = $("#ans");
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    });
 }
 
 document.querySelectorAll(".tab").forEach(button => {
