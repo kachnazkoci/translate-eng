@@ -3,6 +3,7 @@ let mode = "match";
 let selected = null;
 let score = 0;
 let remaining = [];
+let pronunciationEnabled = localStorage.getItem("pronunciationEnabled") !== "false";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -252,6 +253,7 @@ function render() {
 
 
 function speakEnglish(text) {
+    if (!pronunciationEnabled) return;
     if (!text || !('speechSynthesis' in window)) return;
 
     window.speechSynthesis.cancel();
@@ -271,6 +273,29 @@ function attachPronunciation() {
             speakEnglish(element.dataset.speak);
         };
     });
+}
+
+function updatePronunciationButton() {
+    const button = $("#pronunciationToggle");
+    if (!button) return;
+
+    button.textContent = pronunciationEnabled
+        ? "🔊 Pronunciation: ON"
+        : "🔇 Pronunciation: OFF";
+
+    button.classList.toggle("off", !pronunciationEnabled);
+    button.setAttribute("aria-pressed", String(pronunciationEnabled));
+}
+
+function togglePronunciation() {
+    pronunciationEnabled = !pronunciationEnabled;
+    localStorage.setItem("pronunciationEnabled", String(pronunciationEnabled));
+
+    if (!pronunciationEnabled && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+    }
+
+    updatePronunciationButton();
 }
 
 function renderMatch() {
@@ -592,6 +617,9 @@ $("#reset").onclick = () => {
     $("#block").value = "";
     updateFilters();
 };
+
+$("#pronunciationToggle").onclick = togglePronunciation;
+updatePronunciationButton();
 
 function esc(value) {
     return String(value ?? "").replace(/[&<>\"]/g, char => ({

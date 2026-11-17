@@ -5,7 +5,7 @@ header h1{margin:0;font-size:28px}
 header p{margin:6px 0 0;color:#68737d}
 main{max-width:1000px;margin:24px auto;padding:0 16px}
 .card{background:#fff;border:1px solid #e1e5e8;border-radius:16px;padding:18px;margin-bottom:18px;box-shadow:0 3px 12px #0000000a}
-.filters{display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:12px}
+.filters{display:grid;grid-template-columns:1fr 1fr 1.5fr auto;gap:12px;align-items:end}
 label{font-size:13px;font-weight:600;color:#4f5a63}
 select{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #ccd3d8;border-radius:10px;background:#fff;font-size:15px}
 .bar{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
@@ -40,3 +40,8 @@ select{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #cc
 .english-prompt{cursor:pointer}
 .english-prompt:hover{opacity:.78}
 .word[data-speak]{cursor:pointer}
+
+.pronunciation-toggle{align-self:end;height:42px;padding:0 14px;border:1px solid #ccd3d8;border-radius:10px;background:#fff;color:#17202a;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap}
+.pronunciation-toggle:hover{border-color:#9aa5ad;background:#fafbfc}
+.pronunciation-toggle.off{opacity:.78}
+@media(max-width:900px){.filters{grid-template-columns:1fr 1fr}.pronunciation-toggle{width:100%}}
