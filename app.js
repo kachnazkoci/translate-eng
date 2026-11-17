@@ -250,6 +250,29 @@ function render() {
     }
 }
 
+
+function speakEnglish(text) {
+    if (!text || !('speechSynthesis' in window)) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(String(text));
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function attachPronunciation() {
+    document.querySelectorAll('[data-speak]').forEach(element => {
+        element.onclick = event => {
+            event.stopPropagation();
+            speakEnglish(element.dataset.speak);
+        };
+    });
+}
+
 function renderMatch() {
     const round = remaining;
 
@@ -287,8 +310,8 @@ function renderMatch() {
         <div class="round">
             <div>
                 ${english.map(x => `
-                    <button class="word" data-id="${esc(x.id)}">
-                        ${esc(x.en)}
+                    <button class="word" data-id="${esc(x.id)}" data-speak="${esc(x.en)}">
+                        ${esc(x.en)} 🔊
                     </button>
                 `).join("")}
             </div>
@@ -304,7 +327,10 @@ function renderMatch() {
     `;
 
     document.querySelectorAll(".word").forEach(button => {
-        button.onclick = pair;
+        button.onclick = event => {
+            if (button.dataset.speak) speakEnglish(button.dataset.speak);
+            pair(event);
+        };
     });
 }
 
@@ -373,7 +399,7 @@ function renderTranslate() {
             <span>${completed + 1}/${sessionTotal}</span>
         </div>
 
-        <div class="prompt">${esc(prompt)}</div>
+        <div class="prompt ${englishFirst ? "english-prompt" : ""}" ${englishFirst ? `data-speak="${esc(prompt)}"` : ""}>${esc(prompt)}${englishFirst ? " 🔊" : ""}</div>
 
         <div class="answer">
             <input id="ans" autofocus placeholder="${englishFirst ? "Czech" : "English"}">
@@ -382,6 +408,13 @@ function renderTranslate() {
 
         <p id="fb" class="muted"></p>
     `;
+
+    if (englishFirst) {
+        const promptElement = $(".english-prompt");
+        if (promptElement) {
+            promptElement.onclick = () => speakEnglish(promptElement.dataset.speak);
+        }
+    }
 
     const check = () => {
         const value = $("#ans").value.trim();
@@ -451,7 +484,7 @@ function renderPick() {
         </div>
 
         <p class="pick-label">Pick the right one:</p>
-        <div class="pick-prompt">${esc(prompt)}</div>
+        <div class="pick-prompt ${englishFirst ? "english-prompt" : ""}" ${englishFirst ? `data-speak="${esc(prompt)}"` : ""}>${esc(prompt)}${englishFirst ? " 🔊" : ""}</div>
 
         <div class="choices">
             ${options.map(option => `
@@ -463,6 +496,13 @@ function renderPick() {
 
         <p id="pick-feedback" class="feedback"></p>
     `;
+
+    if (englishFirst) {
+        const promptElement = $(".english-prompt");
+        if (promptElement) {
+            promptElement.onclick = () => speakEnglish(promptElement.dataset.speak);
+        }
+    }
 
     document.querySelectorAll(".choice").forEach(button => {
         button.onclick = () => pickAnswer(button, item.id);

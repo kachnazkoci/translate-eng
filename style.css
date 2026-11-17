@@ -37,3 +37,6 @@ select{display:block;width:100%;margin-top:6px;padding:11px;border:1px solid #cc
 .result{text-align:center;padding:20px}
 .result button{margin-top:8px}
 @media(max-width:700px){.filters,.round{grid-template-columns:1fr}.tabs{display:grid;grid-template-columns:1fr}.tab{width:100%}}
+.english-prompt{cursor:pointer}
+.english-prompt:hover{opacity:.78}
+.word[data-speak]{cursor:pointer}
